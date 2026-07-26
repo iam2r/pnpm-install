@@ -10,11 +10,16 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
 
       - name: Install pnpm 11
         run: sh pnpm-install.sh
@@ -33,10 +38,4 @@ jobs:
           export PNPM_HOME="${{ runner.temp }}/pnpm-home"
           export PATH="$PNPM_HOME/bin:$PATH"
           pnpm use 12.0.0-alpha.21
-
-      - name: Verify pnpm 12 binary
-        run: |
-          export PNPM_HOME="${{ runner.temp }}/pnpm-home"
-          export PATH="$PNPM_HOME/bin:$PATH"
           pnpm --version
-          file "$PNPM_HOME/current/package/pnpm"
