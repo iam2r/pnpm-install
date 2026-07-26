@@ -12,7 +12,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-13, macos-latest]
+        # Note: macos-13 (Intel Mac) is no longer available on GitHub Actions
+        # as of 2025. Test the Intel Mac v11 fallback locally with:
+        # PNPM_NPM_PACK=true PNPM_VERSION=11.17.0 sh pnpm-install.sh
+        os: [ubuntu-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v7
