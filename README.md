@@ -7,7 +7,7 @@
 ## 一键安装
 
 ```bash
-# 安装最新版
+# 安装最新版（默认行为，不加 PNPM_VERSION）
 curl -fsSL https://raw.githubusercontent.com/iam2r/pnpm-install/main/pnpm-install.sh | sh
 
 # 安装指定版本
