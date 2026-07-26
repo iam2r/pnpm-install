@@ -150,20 +150,31 @@ set -e
 PNPM_HOME="\${PNPM_HOME:-\$HOME/.pnpm}"
 CURRENT="\$PNPM_HOME/current"
 
-# handle "self-update" — run real self-update, then re-write wrapper
+# handle "self-update" — delegate to pnpm-install.sh stored inside PNPM_HOME
 if [ "\${1:-}" = "self-update" ]; then
-  shift
-  BIN="\$CURRENT/package/bin/pnpm.mjs"
-  [ ! -f "\$BIN" ] && BIN="\$CURRENT/package/pnpm"
-  "\$BIN" self-update "\$@"
-  EXIT_CODE=\$?
-  # Re-invoke pnpm-install.sh to restore wrapper with freshly installed version
-  if [ \$EXIT_CODE -eq 0 ]; then
-    NEW_VERSION=\$(ls -t "\$PNPM_HOME/versions/" 2>/dev/null | head -1)
-    [ -n "\$NEW_VERSION" ] && ln -sfn "versions/\$NEW_VERSION" "\$CURRENT"
-    echo "pnpm self-update complete. Re-writing wrapper..."
+  INSTALLER="\$PNPM_HOME/pnpm-install.sh"
+  if [ -f "\$INSTALLER" ]; then
+    shift
+    case "\${1:-}" in
+      --help|-h)
+        echo "Updates pnpm to the latest version (or the one specified)"
+        echo ""
+        echo "Usage:"
+        echo "  pnpm self-update               Install latest version"
+        echo "  pnpm self-update 9             Install latest v9"
+        echo "  pnpm self-update 9.10.0        Install exact version"
+        exit 0
+        ;;
+      *)
+        PNPM_VERSION="\${1:-}" sh "\$INSTALLER"
+        exit \$?
+        ;;
+    esac
+  else
+    echo "Error: pnpm-install.sh not found at \$INSTALLER" >&2
+    echo "Reinstall via: curl -fsSL https://raw.githubusercontent.com/iam2r/pnpm-install/main/pnpm-install.sh | sh" >&2
+    exit 1
   fi
-  exit \$EXIT_CODE
 fi
 # handle "use" subcommand
 if [ "\${1:-}" = "use" ] && [ -n "\${2:-}" ]; then
@@ -288,6 +299,9 @@ write_wrapper
 write_pnpx_wrapper
 ln -sfn "versions/$PNPM_VERSION" "$PNPM_HOME/current"
 setup_shell
+
+# 拷贝自身到 PNPM_HOME，供 wrapper 的 self-update 调用
+cp "$0" "$PNPM_HOME/pnpm-install.sh" 2>/dev/null
 
 ohai "pnpm@${PNPM_VERSION} installed. Restart your terminal or run:"
 printf "  export PNPM_HOME=\"%s\"\n" "$PNPM_HOME"
