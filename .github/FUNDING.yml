@@ -1,0 +1,3 @@
+name: pnpm-install
+description: pnpm installer from npm registry — Intel Mac friendly alternative to get.pnpm.io/install.sh
+license: MIT

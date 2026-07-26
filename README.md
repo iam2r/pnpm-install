@@ -1,53 +1,77 @@
 # pnpm-install
 
-模拟 pnpm 官方 `install.sh` 的一键安装脚本，唯一区别是从 npm registry 下载包而非 GitHub releases。
+[![CI](https://github.com/iam2r/pnpm-install/actions/workflows/test.yml/badge.svg)](https://github.com/iam2r/pnpm-install/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**解决的问题**：pnpm v11 官方独立二进制在 Intel macOS 上因 Node.js SEA bug 无法使用（官方 install.sh 会直接 abort）。本脚本用 npm tarball + 平台原生二进制（`@pnpm/exe`）实现等价安装，让 Intel Mac 也能用上 `pnpm use` 多版本管理。ARM Mac 和其他 Linux 平台安装官方独立二进制没有问题，本脚本对他们而言是完整替代品。
+A drop-in replacement for pnpm's official `get.pnpm.io/install.sh` that downloads from npm registry instead of GitHub releases.
 
-## 一键安装
+## Problem
 
-```bash
-# 安装最新版（默认行为，不加 PNPM_VERSION）
-curl -fsSL https://raw.githubusercontent.com/iam2r/pnpm-install/main/pnpm-install.sh | sh
+[pnpm v11](https://github.com/pnpm/pnpm/issues/11423) does not provide a working standalone binary for **Intel macOS** (darwin-x64) due to [an upstream Node.js SEA bug](https://github.com/nodejs/node/issues/62893) that the Node.js team has decided not to fix. The official installer aborts on this platform with:
 
-# 安装指定版本
-curl -fsSL https://raw.githubusercontent.com/iam2r/pnpm-install/main/pnpm-install.sh | env PNPM_VERSION=11.17.0 sh
+```
+pnpm v11 does not provide a working binary for Intel macOS (darwin-x64)
 ```
 
-## 日常使用
+This script solves it by downloading pnpm from npm registry — no standalone binary needed.
+
+## Quick Install
 
 ```bash
-# 切换版本（如果未安装会自动下载）
+# Latest version (no arguments needed)
+curl -fsSL https://raw.githubusercontent.com/iam2r/pnpm-install/main/pnpm-install.sh | sh
+
+# Specific version
+curl -fsSL https://raw.githubusercontent.com/iam2r/pnpm-install/main/pnpm-install.sh | env PNPM_VERSION=11.17.0 sh
+
+# Install latest pnpm 12 (native binary included)
+curl -fsSL https://raw.githubusercontent.com/iam2r/pnpm-install/main/pnpm-install.sh | env PNPM_VERSION=12.0.0 sh
+```
+
+## Usage
+
+After installation, `pnpm` is available in your shell (restart terminal or follow the on-screen instructions).
+
+```bash
+# Switch versions on the fly (auto-installs if missing)
 pnpm use 11.17.0
 pnpm use 12.0.0-alpha.21
 
-# 多版本共存
-# $PNPM_HOME/bin/pnpm          ← 当前激活的版本
-# $PNPM_HOME/bin/pnpm-v11.17.0 ← 版本特定入口
-# $PNPM_HOME/bin/pnpm-v12.0.0  ← 另一个版本
+# Version-specific binaries preserved for rollback
+$PNPM_HOME/bin/pnpm         # current active version
+$PNPM_HOME/bin/pnpm-v11.17.0  # pinned v11
+$PNPM_HOME/bin/pnpm-v12.0.0   # pinned v12
 ```
 
-## 与官方 install.sh 的区别
+## How It Works
 
-| 特性 | 官方 install.sh | pnpm-install.sh |
-|------|----------------|-----------------|
-| 包来源 | GitHub Releases 独立二进制 | npm registry（npm pack） |
-| pnpm 11 Intel Mac | ❌ 直接 abort | ✅ 正常安装运行 |
-| `pnpm use` 多版本 | ✅ | ✅ |
-| `$PNPM_HOME` 目录结构 | `bin/`, `versions/` | 完全一致 |
-| pnpm 12+ 原生二进制 | GitHub Releases | `@pnpm/exe` npm 包 |
+| Step | Official `install.sh` | `pnpm-install.sh` |
+|------|----------------------|-------------------|
+| Package source | GitHub Releases | npm registry (`npm pack`) |
+| pnpm v11 on Intel Mac | ❌ Aborts | ✅ Runs via JS entry |
+| pnpm v12+ native binary | GitHub Release binary | `@pnpm/exe` npm package |
+| `pnpm use` version switching | ✅ | ✅ |
+| `$PNPM_HOME` directory layout | `bin/`, `versions/` | ✅ Identical |
+| Shell rc setup (`~/.zshrc` / `~/.bashrc`) | ✅ | ✅ |
 
-## 环境要求
+## Requirements
 
-- Node.js（`npm` 命令可用）
-- `curl` 或 `wget`
+- **Node.js** with `npm` available on `PATH`
+- `curl` or `wget`
 
-## 运行方式
+## Local Development
 
 ```bash
-# 本地运行
+git clone https://github.com/iam2r/pnpm-install.git
+cd pnpm-install
+
+# Test install latest
 sh pnpm-install.sh
 
-# 指定版本
+# Test install specific version
 PNPM_VERSION=11.17.0 sh pnpm-install.sh
 ```
+
+## License
+
+MIT

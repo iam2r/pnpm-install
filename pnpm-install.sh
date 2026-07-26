@@ -1,18 +1,18 @@
 #!/bin/sh
 #
-# pnpm-install — 模拟 pnpm 官方 install.sh，用 npm registry 下载包
-#                代替 GitHub releases 独立二进制。
+# pnpm-install — npm-registry-based pnpm installer
 #
-# 完全兼容官方脚本的目录结构（$PNPM_HOME/bin/, versions/）和 pnpm use 命令。
+# A drop-in replacement for pnpm's official install.sh that downloads
+# from npm registry instead of GitHub releases. Supports Intel Mac pnpm v11
+# (which the official installer aborts on) and all other platforms.
 #
-# 用法:
+# Usage:
 #   curl -fsSL https://raw.githubusercontent.com/iam2r/pnpm-install/main/pnpm-install.sh | sh
 #   curl -fsSL ... | env PNPM_VERSION=11.17.0 sh
-#   pnpm use <version>                                 # 切换版本（自动安装）
+#   pnpm use <version>
 #
-# 与原版唯一区别：从 npm registry 下载，而非 GitHub releases。
-# Intel macOS 的 pnpm v11 也能正常工作（原版 install.sh 会在此平台 abort）。
-#
+# License: MIT
+# Repository: https://github.com/iam2r/pnpm-install
 # From https://github.com/Homebrew/install/blob/master/install.sh
 abort() {
   printf "%s\n" "$@"

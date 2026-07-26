@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Run installer
+        run: sh pnpm-install.sh
+        env:
+          PNPM_VERSION: 11.17.0
+          PNPM_HOME: ${{ runner.temp }}/pnpm-home
+          HOME: ${{ runner.temp }}/home
+
+      - name: Verify pnpm works
+        run: |
+          export PNPM_HOME="${{ runner.temp }}/pnpm-home"
+          export PATH="$PNPM_HOME/bin:$PATH"
+          pnpm --version
+          pnpm add -g pnpm@11.17.0
