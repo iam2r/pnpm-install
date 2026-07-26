@@ -150,6 +150,21 @@ set -e
 PNPM_HOME="\${PNPM_HOME:-\$HOME/.pnpm}"
 CURRENT="\$PNPM_HOME/current"
 
+# handle "self-update" — run real self-update, then re-write wrapper
+if [ "\${1:-}" = "self-update" ]; then
+  shift
+  BIN="\$CURRENT/package/bin/pnpm.mjs"
+  [ ! -f "\$BIN" ] && BIN="\$CURRENT/package/pnpm"
+  "\$BIN" self-update "\$@"
+  EXIT_CODE=\$?
+  # Re-invoke pnpm-install.sh to restore wrapper with freshly installed version
+  if [ \$EXIT_CODE -eq 0 ]; then
+    NEW_VERSION=\$(ls -t "\$PNPM_HOME/versions/" 2>/dev/null | head -1)
+    [ -n "\$NEW_VERSION" ] && ln -sfn "versions/\$NEW_VERSION" "\$CURRENT"
+    echo "pnpm self-update complete. Re-writing wrapper..."
+  fi
+  exit \$EXIT_CODE
+fi
 # handle "use" subcommand
 if [ "\${1:-}" = "use" ] && [ -n "\${2:-}" ]; then
   VERSION="\$2"
