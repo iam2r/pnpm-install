@@ -21,33 +21,86 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install pnpm 11
+      # --- Standard install path (GitHub release) ---
+      - name: Install latest (standard path)
         run: sh pnpm-install.sh
         env:
-          PNPM_VERSION: 11.17.0
-          PNPM_HOME: ${{ runner.temp }}/pnpm-home
-
-      - name: Verify pnpm 11 works
-        run: |
-          export PNPM_HOME="${{ runner.temp }}/pnpm-home"
-          export PATH="$PNPM_HOME/bin:$PATH"
-          pnpm --version
-
-      - name: Switch versions via pnpm use
-        run: |
-          export PNPM_HOME="${{ runner.temp }}/pnpm-home"
-          export PATH="$PNPM_HOME/bin:$PATH"
-          pnpm use 11.17.0
-
-      - name: Test with latest pnpm
-        run: sh pnpm-install.sh
-        env:
-          PNPM_HOME: ${{ runner.temp }}/pnpm-home2
+          PNPM_HOME: ${{ runner.temp }}/p1
 
       - name: Verify latest version
         run: |
-          export PNPM_HOME="${{ runner.temp }}/pnpm-home2"
+          export PNPM_HOME="${{ runner.temp }}/p1"
           export PATH="$PNPM_HOME/bin:$PATH"
-          pnpm --version > /dev/null
+          pnpm --version
           echo "OK: latest pnpm installed"
 
+      - name: Test self-update (latest → same)
+        run: |
+          export PNPM_HOME="${{ runner.temp }}/p1"
+          export PATH="$PNPM_HOME/bin:$PATH"
+          pnpm self-update --help
+          pnpm self-update
+          echo "OK: self-update works"
+
+      # --- npm-pack fallback (simulates Intel Mac v11) ---
+      - name: Install v11 via npm-pack fallback
+        run: sh pnpm-install.sh
+        env:
+          PNPM_VERSION: 11.17.0
+          PNPM_NPM_PACK: "true"
+          PNPM_HOME: ${{ runner.temp }}/p2
+
+      - name: Verify npm-pack install
+        run: |
+          export PNPM_HOME="${{ runner.temp }}/p2"
+          export PATH="$PNPM_HOME/bin:$PATH"
+          pnpm --version
+          pnpm store path
+          echo "OK: npm-pack install works"
+
+      - name: Self-update from npm-pack v11 to latest
+        run: |
+          export PNPM_HOME="${{ runner.temp }}/p2"
+          export PATH="$PNPM_HOME/bin:$PATH"
+          pnpm self-update
+          echo "OK: self-update from v11 works"
+
+      # --- v9 install + self-update to v11 ---
+      - name: Install v9 + self-update to v11
+        run: |
+          sh pnpm-install.sh
+          export PNPM_HOME="${{ runner.temp }}/p3"
+          export PATH="$PNPM_HOME/bin:$PATH"
+          pnpm --version
+          pnpm self-update 11.17.0
+          pnpm --version
+          echo "OK: v9 → v11 upgrade works"
+        env:
+          PNPM_VERSION: 9.15.9
+          PNPM_HOME: ${{ runner.temp }}/p3
+
+      # --- v10 install + self-update to v11 ---
+      - name: Install v10 + self-update to v11
+        run: |
+          sh pnpm-install.sh
+          export PNPM_HOME="${{ runner.temp }}/p4"
+          export PATH="$PNPM_HOME/bin:$PATH"
+          pnpm --version
+          pnpm self-update 11.17.0
+          pnpm --version
+          echo "OK: v10 → v11 upgrade works"
+        env:
+          PNPM_VERSION: 10.34.5
+          PNPM_HOME: ${{ runner.temp }}/p4
+
+      # --- Smoke test: pnpm commands work ---
+      - name: Smoke test (install a package)
+        run: |
+          export PNPM_HOME="${{ runner.temp }}/p2"
+          export PATH="$PNPM_HOME/bin:$PATH"
+          cd "$(mktemp -d)"
+          pnpm init 2>/dev/null
+          pnpm add is-odd --no-optional --ignore-scripts
+          echo "OK: pnpm add works"
+        env:
+          PNPM_HOME: ${{ runner.temp }}/p2
