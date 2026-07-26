@@ -33,8 +33,21 @@ jobs:
           export PATH="$PNPM_HOME/bin:$PATH"
           pnpm --version
 
-      - name: Switch versions
+      - name: Switch versions via pnpm use
         run: |
           export PNPM_HOME="${{ runner.temp }}/pnpm-home"
           export PATH="$PNPM_HOME/bin:$PATH"
           pnpm use 11.17.0
+
+      - name: Test with latest pnpm
+        run: sh pnpm-install.sh
+        env:
+          PNPM_HOME: ${{ runner.temp }}/pnpm-home2
+
+      - name: Verify latest version
+        run: |
+          export PNPM_HOME="${{ runner.temp }}/pnpm-home2"
+          export PATH="$PNPM_HOME/bin:$PATH"
+          pnpm --version > /dev/null
+          echo "OK: latest pnpm installed"
+
