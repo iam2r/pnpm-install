@@ -172,7 +172,8 @@ if [ "\${1:-}" = "use" ] && [ -n "\${2:-}" ]; then
     else
       # v12+: download native binary and replace placeholder
       MAJOR="\$(printf '%s' "\$VERSION" | sed -E 's/^v//; s/^([0-9]+).*/\1/')"
-      (cd "\$TMPDIR" && npm pack "@pnpm/exe.darwin-x64@\$VERSION" --pack-destination "\$TMPDIR" >/dev/null 2>&1) || {
+      EXE_PKG="\$(PNPM_HOME="\$PNPM_HOME" sh "\$0" --detect-exe-pkg 2>/dev/null || echo '@pnpm/exe.darwin-x64')"
+      (cd "\$TMPDIR" && npm pack "\${EXE_PKG}@\$VERSION" --pack-destination "\$TMPDIR" >/dev/null 2>&1) || {
         echo "Error: native binary not found for pnpm@\$VERSION" >&2; rm -rf "\$TMPDIR"; exit 1
       }
       EXE_TAR="\$(ls "\$TMPDIR"/pnpm*.tgz 2>/dev/null | grep -v '/pnpm-[0-9]' | head -1)"
@@ -252,6 +253,12 @@ setup_shell() {
 # ================ entry ================
 detect_platform >/dev/null
 detect_arch >/dev/null
+
+# Internal: print the platform-specific @pnpm/exe package name
+if [ "${1:-}" = "--detect-exe-pkg" ]; then
+  platform_pkg
+  exit 0
+fi
 
 if [ -z "${PNPM_VERSION}" ]; then
   version_json="$(download "https://registry.npmjs.org/pnpm")" || abort "Download Error!"

@@ -33,9 +33,8 @@ jobs:
           export PATH="$PNPM_HOME/bin:$PATH"
           pnpm --version
 
-      - name: Switch to pnpm 12 via pnpm use
+      - name: Switch versions
         run: |
           export PNPM_HOME="${{ runner.temp }}/pnpm-home"
           export PATH="$PNPM_HOME/bin:$PATH"
-          pnpm use 12.0.0-alpha.21
-          pnpm --version
+          pnpm use 11.17.0
