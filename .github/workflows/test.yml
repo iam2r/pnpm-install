@@ -107,3 +107,45 @@ jobs:
           echo "OK: pnpm add works"
         env:
           PNPM_HOME: ${{ runner.temp }}/p2
+
+  # Platform-default PNPM_HOME: no env var set so detect_pnpm_home()
+  # determines the path. On macOS this must be ~/Library/pnpm, on Linux
+  # ~/.local/share/pnpm. Verifies that pnpm setup --force writes the
+  # same value that the script used.
+  platform-default:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      # Remove any PNPM_HOME that the runner inherited so detect_pnpm_home
+      # runs its platform default branch. Also clean pre-existing pnpm dirs
+      # to get a clean baseline.
+      - name: Install with platform-default PNPM_HOME
+        run: |
+          unset PNPM_HOME
+          rm -rf "$HOME/.local/share/pnpm" "$HOME/Library/pnpm"
+          sh pnpm-install.sh
+
+      - name: Verify path matches platform convention
+        run: |
+          case "$RUNNER_OS" in
+            macOS) expected="$HOME/Library/pnpm" ;;
+            Linux) expected="$HOME/.local/share/pnpm" ;;
+          esac
+          export PNPM_HOME="$expected"
+          export PATH="$PNPM_HOME/bin:$PATH"
+          actual="$(pnpm --version 2>&1)"
+          echo "pnpm version: $actual"
+          echo "PNPM_HOME: $expected"
+          [ -f "$expected/bin/pnpm" ] || { echo "ERROR: wrapper not at $expected/bin/pnpm"; exit 1; }
+          [ -f "$expected/pnpm-install.sh" ] || { echo "ERROR: installer missing"; exit 1; }
+          echo "OK: platform-default path works"
