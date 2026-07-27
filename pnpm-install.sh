@@ -222,6 +222,35 @@ setup_shell() {
 }
 
 # ==============================
+# PNPM_HOME detection
+# ==============================
+
+# Replicate pnpm's own getDataDir() logic so the script's PNPM_HOME
+# always matches what `pnpm setup --force` writes to the shell rc.
+# Priority: PNPM_HOME env > XDG_DATA_HOME > platform default.
+detect_pnpm_home() {
+  if [ -n "${PNPM_HOME}" ]; then
+    printf '%s' "${PNPM_HOME}"
+    return
+  fi
+  if [ -n "${XDG_DATA_HOME}" ]; then
+    printf '%s' "${XDG_DATA_HOME}/pnpm"
+    return
+  fi
+  case "$(uname -s | tr '[:upper:]' '[:lower:]')" in
+    darwin)   printf '%s' "${HOME}/Library/pnpm" ;;
+    mingw*|msys*|cygwin*)
+      if [ -n "${LOCALAPPDATA}" ]; then
+        printf '%s' "${LOCALAPPDATA}/pnpm"
+      else
+        printf '%s' "${HOME}/.pnpm"
+      fi
+      ;;
+    *)        printf '%s' "${HOME}/.local/share/pnpm" ;;
+  esac
+}
+
+# ==============================
 # Install methods
 # ==============================
 
@@ -344,7 +373,7 @@ install_via_npm_registry() {
 # Entry point
 # ==============================
 
-: "${PNPM_HOME:=$HOME/.local/share/pnpm}"
+PNPM_HOME="$(detect_pnpm_home)"
 mkdir -p "$PNPM_HOME" "$PNPM_HOME/bin"
 
 # Dev/test: PNPM_NPM_PACK=true forces npm registry path (only effective when
@@ -403,11 +432,15 @@ else
   install_via_github_release "$PNPM_VERSION" "$platform" "$arch" "$(detect_libc_suffix)" || abort "Install Error!"
 fi
 
-# Copy installer to PNPM_HOME for self-update support
-cp "$0" "$PNPM_HOME/pnpm-install.sh" 2>/dev/null || {
-  ohai "Warning: could not copy installer to PNPM_HOME (piped install)"
-  ohai "self-update will redirect users to reinstall manually"
-}
+# Copy installer to PNPM_HOME for self-update support.
+# Skip when already in place (self-update $0 == dest) or source
+# isn't a regular file (piped install).
+if [ -f "$0" ] && [ "$0" != "$PNPM_HOME/pnpm-install.sh" ] 2>/dev/null; then
+  cp "$0" "$PNPM_HOME/pnpm-install.sh" 2>/dev/null || {
+    ohai "Warning: could not copy installer to PNPM_HOME (piped install)"
+    ohai "self-update will redirect users to reinstall manually"
+  }
+fi
 setup_shell
 
 ohai "pnpm@${PNPM_VERSION} installed. Restart your terminal or run:"
